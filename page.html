@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$title · Stockholm Weather Time Capsule</title>
+  <link rel="stylesheet" href="/reader.css">
+</head>
+<body>
+  <a class="skip" href="#capsule">Skip to the time capsule</a>
+  <header class="masthead">
+    <a class="brand" href="/"><span class="monogram" aria-hidden="true">S</span><span>Stockholm<br><strong>Weather Time Capsule</strong></span></a>
+    <p class="kicker edition">Observatory edition</p>
+  </header>
+  <main>
+    <nav class="pickers" aria-label="Choose a date">
+      <form action="/" method="get" aria-label="Featured dates">
+        <label for="featured">Featured dates</label>
+        <div class="field-row">
+          <select name="date" id="featured" required>
+            <option value="" disabled $none_selected>Choose a featured date</option>
+            <option value="1897-05-15" $exhibition_selected>15 May 1897 · Exhibition</option>
+            <option value="1901-12-10" $nobel_selected>10 December 1901 · Nobel Prizes</option>
+          </select>
+          <button type="submit" class="secondary">Open</button>
+        </div>
+      </form>
+      <form action="/" method="get" aria-label="Search an exact date">
+        <label for="chosen-date">Explore your own date</label>
+        <div class="field-row">
+          <input type="date" id="chosen-date" name="date" value="$input_date" min="$min_date" max="$max_date" aria-describedby="date-range" required>
+          <button type="submit">Find date</button>
+        </div>
+        <p id="date-range" class="note">$coverage_start to $coverage_end</p>
+      </form>
+    </nav>
+    $error
+    <div class="spread" id="capsule">
+      <article aria-labelledby="headline">
+        <p class="kicker date">$display_date</p>
+        <h1 id="headline">$title</h1>
+        $dispatch
+        $history
+      </article>
+      <aside class="weather" aria-labelledby="weather-heading">
+        <h2 class="kicker" id="weather-heading">At the observatory</h2>
+        $weather
+      </aside>
+    </div>
+  </main>
+  <footer>
+    <a href="$dataset">Anders Moberg · Bolin Centre daily temperature dataset ↗</a>
+    <span>Observatory record, Stockholm</span>
+  </footer>
+</body>
+</html>

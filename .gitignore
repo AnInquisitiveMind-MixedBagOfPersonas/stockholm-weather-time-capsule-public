@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+*.pem
+*.key
+*_credentials.csv
+*_accessKeys.csv
+.aws/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+*.tfvars
+stockholm-historical-temps-monthly-3/

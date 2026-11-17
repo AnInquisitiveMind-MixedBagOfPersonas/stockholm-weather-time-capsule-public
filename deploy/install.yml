@@ -1,0 +1,228 @@
+---
+- name: Install the reviewed time capsule on a dedicated staging instance
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    capsule_selected_model: "{{ capsule_bedrock_model | default('nova-lite') }}"
+    capsule_selected_limit: "{{ capsule_dispatch_limit | default(5) }}"
+
+  tasks:
+    - name: Check the operating system and dedicated-host acknowledgement
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Amazon'
+          - ansible_facts.distribution_major_version == '2023'
+          - capsule_dedicated_host | default(false) | bool
+        fail_msg: This playbook is for a dedicated Amazon Linux 2023 staging instance and replaces its Nginx configuration.
+
+    - name: Check the selected Bedrock model
+      ansible.builtin.assert:
+        that:
+          - capsule_selected_model in ['nova-lite', 'qwen']
+        fail_msg: Set capsule_bedrock_model to nova-lite or qwen.
+
+    - name: Check the selected dispatch limit
+      ansible.builtin.assert:
+        that:
+          - (capsule_selected_limit | string) in ['5', '10']
+        fail_msg: Set capsule_dispatch_limit to 5 or 10.
+
+    - name: Install the web and Python packages
+      ansible.builtin.dnf:
+        name: [nginx, python3.12, python3.12-pip, python3-setuptools]
+        state: present
+
+    - name: Create the application service group
+      ansible.builtin.group:
+        name: weather-capsule
+        system: true
+
+    - name: Create an unprivileged service account
+      ansible.builtin.user:
+        name: weather-capsule
+        group: weather-capsule
+        system: true
+        create_home: false
+        shell: /sbin/nologin
+
+    - name: Create the root-owned application directory
+      ansible.builtin.file:
+        path: /opt/weather-capsule
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy only the reviewed application and attributed dataset
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../{{ item }}"
+        dest: "/opt/weather-capsule/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: [app.py, wsgi.py, dispatch.py, page.html, reader.css, stockholm_daily_mean_temperature.csv]
+      notify: Restart the application
+
+    - name: Copy the dependency lock
+      ansible.builtin.copy:
+        src: requirements.txt
+        dest: /opt/weather-capsule/requirements.txt
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Prepare the Python virtual environment
+      ansible.builtin.command:
+        argv: [/usr/bin/python3.12, -m, venv, /opt/weather-capsule/.venv]
+        creates: /opt/weather-capsule/.venv/bin/pip
+
+    - name: Install the hash-pinned WSGI server and AWS SDK
+      ansible.builtin.pip:
+        executable: /opt/weather-capsule/.venv/bin/pip
+        requirements: /opt/weather-capsule/requirements.txt
+        extra_args: '--require-hashes --only-binary=:all: --no-deps'
+      notify: Restart the application
+
+    - name: Select the staging provider
+      ansible.builtin.set_fact:
+        capsule_provider: "{{ 'bedrock' if (capsule_bedrock | default(false) | bool) else 'off' }}"
+
+    - name: Check that the application and CSV load before restarting
+      ansible.builtin.command:
+        argv: [/opt/weather-capsule/.venv/bin/python, -B, -c, 'import wsgi; assert callable(wsgi.application)']
+        chdir: /opt/weather-capsule
+      environment:
+        CAPSULE_PROVIDER: "{{ capsule_provider }}"
+        CAPSULE_BEDROCK_MODEL: "{{ capsule_selected_model }}"
+        CAPSULE_DISPATCH_LIMIT: "{{ capsule_selected_limit | string }}"
+      changed_when: false
+
+    - name: Install the systemd unit
+      ansible.builtin.copy:
+        src: weather-capsule.service
+        dest: /etc/systemd/system/weather-capsule.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart the application
+
+    - name: Create the systemd configuration directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/weather-capsule.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Configure the staging provider without credentials
+      ansible.builtin.copy:
+        content: |
+          [Service]
+          Environment=CAPSULE_PROVIDER={{ capsule_provider }}
+          Environment=CAPSULE_BEDROCK_MODEL={{ capsule_selected_model }}
+          Environment=CAPSULE_DISPATCH_LIMIT={{ capsule_selected_limit }}
+        dest: /etc/systemd/system/weather-capsule.service.d/provider.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart the application
+
+    - name: Prepare optional demo access
+      when: capsule_demo_access | default(false) | bool
+      block:
+        - name: Check the demo password file
+          ansible.builtin.stat:
+            path: /etc/nginx/weather-capsule-demo.htpasswd
+            get_checksum: false
+            get_mime: false
+          register: capsule_demo_passwords
+
+        - name: Require a non-empty regular password file
+          ansible.builtin.assert:
+            that:
+              - capsule_demo_passwords.stat.isreg | default(false)
+              - capsule_demo_passwords.stat.size | default(0) > 0
+            fail_msg: Create the demo password file on EC2 before enabling demo access.
+
+        - name: Set permissions on the demo password file
+          ansible.builtin.file:
+            path: /etc/nginx/weather-capsule-demo.htpasswd
+            state: file
+            owner: root
+            group: nginx
+            mode: '0640'
+
+        - name: Add the signed Tailscale repository for Amazon Linux 2023
+          ansible.builtin.get_url:
+            url: https://pkgs.tailscale.com/stable/amazon-linux/2023/tailscale.repo
+            dest: /etc/yum.repos.d/tailscale.repo
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Install Tailscale
+          ansible.builtin.dnf:
+            name: tailscale
+            state: present
+
+        - name: Start Tailscale for operator enrolment
+          ansible.builtin.systemd_service:
+            name: tailscaled
+            enabled: true
+            state: started
+
+    - name: Validate and install the loopback-only Nginx configuration
+      ansible.builtin.template:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: '0644'
+        validate: /usr/sbin/nginx -t -c %s
+      notify: Restart Nginx
+
+    - name: Enable and start the services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop: [weather-capsule, nginx]
+
+    - name: Apply restart handlers before verification
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify Nginx can reach the app
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/healthz
+        status_code: 200
+        return_content: true
+        use_proxy: false
+      register: capsule_health
+      until: capsule_health.status == 200 and capsule_health.content | trim == 'ok'
+      retries: 5
+      delay: 2
+
+    - name: Verify the demo listener denies unauthenticated requests
+      when: capsule_demo_access | default(false) | bool
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8081/
+        method: "{{ item }}"
+        status_code: 401
+        use_proxy: false
+        use_netrc: false
+      loop: [GET, POST]
+
+  handlers:
+    - name: Restart the application
+      ansible.builtin.systemd_service:
+        name: weather-capsule
+        daemon_reload: true
+        state: restarted
+
+    - name: Restart Nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted

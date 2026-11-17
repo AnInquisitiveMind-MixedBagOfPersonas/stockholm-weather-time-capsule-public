@@ -1,0 +1,27 @@
+name: Application checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  date-explorer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install and verify locked dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --require-hashes --only-binary=:all: --no-deps -r deploy/requirements.txt
+          .venv/bin/python -m pip check
+      - name: Test dates and application boundaries
+        run: .venv/bin/python -B -m unittest discover -s tests -v
+      - name: Load the published dataset with each provider setting
+        run: |
+          .venv/bin/python -B -c 'import wsgi; assert callable(wsgi.application)'
+          CAPSULE_PROVIDER=bedrock .venv/bin/python -B -c 'import wsgi; assert callable(wsgi.application)'
+          CAPSULE_PROVIDER=bedrock CAPSULE_BEDROCK_MODEL=qwen .venv/bin/python -B -c 'import wsgi; assert callable(wsgi.application)'

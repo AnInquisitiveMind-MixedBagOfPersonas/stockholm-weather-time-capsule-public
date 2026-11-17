@@ -1,0 +1,61 @@
+:root {
+  color-scheme: light dark;
+  --paper: light-dark(#f7f2e7, #19292e);
+  --ink: light-dark(#132f35, #f5ecda);
+  --muted: light-dark(#3e5b60, #bccfcd);
+  --accent: light-dark(#853e25, #f4ae8c);
+  --rule: light-dark(#b7bbb1, #647b7e);
+  --wash: light-dark(#e5eeea, #253e43);
+  --focus: light-dark(#005883, #a4d6ff);
+  background: var(--paper);
+  color: var(--ink);
+  font: 100%/1.55 Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 70rem; padding: clamp(1rem, 4vw, 3rem); }
+p, h1, h2, h3, dd { margin: 0; }
+a { color: var(--ink); text-underline-offset: .22em; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+.skip { position: absolute; inset: .5rem auto auto .5rem; padding: .65rem; background: var(--paper); transform: translateY(-180%); }
+.skip:focus { transform: none; }
+.masthead { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--ink); }
+.brand { display: flex; align-items: center; gap: .7rem; line-height: 1.2; text-decoration: none; }
+.brand strong { font-size: 1.15rem; }
+.monogram { display: grid; place-items: center; width: 2.7rem; height: 2.7rem; background: var(--ink); color: var(--paper); font-size: 1.9rem; }
+.kicker { color: var(--muted); font: 700 .75rem/1.4 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+.pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem; padding-block: 1.15rem; border-bottom: 1px solid var(--rule); }
+.pickers form { min-width: 0; }
+.pickers label { display: block; font: 650 .9rem/1.35 system-ui, sans-serif; margin-bottom: .35rem; }
+.field-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+input, select, button { font: 1rem/1.2 system-ui, sans-serif; min-height: 2.75rem; border: 1px solid var(--muted); border-radius: .2rem; max-width: 100%; padding: .35rem .6rem; }
+input, select, button.secondary { background: var(--paper); color: var(--ink); }
+button { background: var(--ink); color: var(--paper); cursor: pointer; }
+button:hover { text-decoration: underline; }
+.note { color: var(--muted); font: .86rem/1.5 system-ui, sans-serif; }
+.pickers .note { margin-top: .4rem; }
+.error { border-left: .25rem solid var(--accent); padding: .65rem 1rem; margin-top: 1rem; color: var(--accent); }
+.spread { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: clamp(1.4rem, 4vw, 3.5rem); align-items: start; padding-block: clamp(1.5rem, 4vw, 2.7rem); }
+.date { color: var(--accent); }
+h1 { font: 700 clamp(2.25rem, 6vw, 4rem)/1.02 Georgia, serif; letter-spacing: -.04em; max-width: 13ch; margin-block: .55rem 1.1rem; overflow-wrap: anywhere; }
+.lede { font-size: 1.12rem; max-width: 40ch; }
+.dispatch { border-top: 1px solid var(--rule); margin-top: 1.25rem; padding-top: 1rem; }
+.dispatch > * + * { margin-top: .6rem; }
+.regent { display: flex; gap: .4rem .7rem; flex-wrap: wrap; align-items: baseline; margin-block: 1.25rem .6rem; }
+.regent a, article > p:last-child a { font: 650 .86rem/1.45 system-ui, sans-serif; }
+.weather { border-top: .25rem solid var(--ink); background: var(--wash); padding: clamp(1rem, 3vw, 1.5rem); }
+.temperature { font-size: 3rem; line-height: 1.1; margin-block: .35rem .2rem; font-variant-numeric: tabular-nums; }
+.weather > .note + .note, .empty { margin-top: .6rem; }
+.comparison, details { border-top: 1px solid var(--rule); margin-top: .9rem; padding-top: .75rem; }
+.comparison-value { display: flex; justify-content: space-between; gap: .35rem .75rem; flex-wrap: wrap; align-items: baseline; }
+.comparison-value strong { font-size: 1.35rem; }
+summary { cursor: pointer; font: 650 .9rem/1.45 system-ui, sans-serif; min-height: 2.75rem; padding-block: .4rem; }
+dl { display: grid; grid-template-columns: 1fr auto; column-gap: 1rem; font-size: .9rem; }
+footer { border-top: 1px solid var(--rule); padding-top: .85rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .4rem 1rem; color: var(--muted); font: .8rem/1.45 system-ui, sans-serif; }
+
+@media (max-width: 680px) {
+  .pickers, .spread { grid-template-columns: minmax(0, 1fr); }
+  .edition { display: none; }
+  h1 { max-width: 18ch; }
+}

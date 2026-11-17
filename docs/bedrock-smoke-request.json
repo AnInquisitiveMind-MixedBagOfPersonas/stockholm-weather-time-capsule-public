@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "Write a short Stockholm Weather Time Capsule dispatch in British English, using only the facts below. Keep it under 90 words.\n\nStockholm's adjusted daily mean temperature was 9.6 °C on 15 May 1897. On 15 May 2026, it was 9.4 °C. The 2026 reading was 0.2 °C cooler than the 1897 reading. The General Art and Industrial Exhibition opened on Djurgården on 15 May 1897, during the reign of Oskar II.\n\nPresent the temperatures as daily means for Stockholm. Avoid adding historical details or drawing a climate conclusion from the two readings. Return only the dispatch."
+        }
+      ]
+    }
+  ],
+  "inferenceConfig": {
+    "maxTokens": 200,
+    "temperature": 0.2
+  }
+}
